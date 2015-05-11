@@ -11,10 +11,13 @@ var gMapHover = {};
 var gTool = null;
 var gToolBarHeight = 64;
 var gMap = null;
-var gDB = null;
 var gTileCache = {};
 
-function setTool(tool, source) {
+function imageToFile(image) {
+    return 'Tiles/ts_' + image + '0/straight/45/0.png';
+}
+
+function setTool(source) {
     if (gTool) {
         gTool.button.classList.remove('active');
     } else {
@@ -23,9 +26,9 @@ function setTool(tool, source) {
 
     source.classList.add('active');
 
-    loadImage(tool);
+    loadImage(source.attributes.tool.value);
 
-    gTool.tool = tool;
+    gTool.tool = source.attributes.tool.value;
     gTool.button = source;
 }
 
@@ -33,6 +36,17 @@ function resize() {
     if (gMapCanvas) {
         gMapCanvas.width = window.innerWidth;
         gMapCanvas.height = window.innerHeight - gToolBarHeight;
+    }
+}
+
+function setupToolbar() {
+    var toolbar = window.document.getElementsByClassName('toolbar')[0];
+
+    for (var i = 0; i < toolbar.children.length; i++) {
+        var child = toolbar.children[i];
+        if (child.attributes.tool) {
+            child.style.backgroundImage = 'url("' + imageToFile(child.attributes.tool.value) + '")';
+        }
     }
 }
 
@@ -89,7 +103,7 @@ function loadMap() {
         for (var y = 0; y < 100; y++) {
             map[y] = [];
             for (var x = 0; x < 100; x++) {
-                map[y][x] = 'ts_grass0';
+                map[y][x] = 'grass';
             }
         }
     }
@@ -100,6 +114,7 @@ function loadMap() {
 function init() {
     setupWindow();
     setupCanvas();
+    setupToolbar();
 
     resize();
 
@@ -117,7 +132,7 @@ function renderLoop(){
 
 function loadImage(tile) {
     gTileCache[tile] = new Image();
-    gTileCache[tile].src = 'Tiles/' + tile + '/straight/45/0.png';
+    gTileCache[tile].src = imageToFile(tile);
 }
 
 function translateMapToScreen(map) {

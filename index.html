@@ -12,8 +12,9 @@
 <body>
 
 <div class="toolbar">
-    <div class="button" onclick="setTool('ts_grass0', this);" style="background-image: url('Tiles/ts_grass0/straight/45/0.png');"></div>
-    <div class="button" onclick="setTool('ts_beach0', this);" style="background-image: url('Tiles/ts_beach0/straight/45/0.png');"></div>
+    <div class="button" tool="grass" onclick="setTool(this);"></div>
+    <div class="button" tool="beach" onclick="setTool(this);"></div>
+    <div class="button" tool="shallow" onclick="setTool(this);"></div>
     <div class="button" onclick="saveMap();">Save</div>
 </div>
 
