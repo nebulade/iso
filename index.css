@@ -19,21 +19,24 @@ html, body {
     border-radius: 2px;
     width: 64px;
     height: 64px;
-    /*margin: 2px;*/
+    color: white;
     background-position: 0 -16;
     background-repeat: no-repeat;
     background-size: cover;
     transition: all 250ms;
+    vertical-align: middle;
 }
 
 .button:hover {
     border-radius: 2px;
     border-color: purple;
     background-color: lightgray;
+    color: black;
 }
 
 .button.active {
     border-radius: 2px;
     border-color: purple;
     background-color: gray;
+    color: black;
 }
