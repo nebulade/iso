@@ -13,8 +13,26 @@ var gToolBarHeight = 64;
 var gMap = null;
 var gTileCache = {};
 
-function imageToFile(image) {
-    return 'Tiles/ts_' + image + '0/straight/45/0.png';
+
+function tileToFile(tile) {
+    return 'Tiles/ts_' + tile.name + '0/' + tile.type + '/' + tile.orientation + '/0.png';
+}
+
+function loadTile(tile) {
+    console.log('load tile', tile.name, tile.type, tile.orientation);
+
+    gTileCache[tile.cacheKey] = new Image();
+    gTileCache[tile.cacheKey].src = tileToFile(tile);
+}
+
+function Tile(name, type, orientation) {
+    this.name = name;
+    this.type = type;
+    this.orientation = orientation;
+    this.cacheKey = name + type + orientation;
+
+    if (!gTileCache[this.cacheKey]) loadTile(this);
+    this.img = gTileCache[this.cacheKey];
 }
 
 function setTool(source) {
@@ -26,9 +44,8 @@ function setTool(source) {
 
     source.classList.add('active');
 
-    loadImage(source.attributes.tool.value);
-
     gTool.tool = source.attributes.tool.value;
+    gTool.tile = new Tile(source.attributes.tool.value, 'straight', 45);
     gTool.button = source;
 }
 
@@ -45,13 +62,22 @@ function setupToolbar() {
     for (var i = 0; i < toolbar.children.length; i++) {
         var child = toolbar.children[i];
         if (child.attributes.tool) {
-            child.style.backgroundImage = 'url("' + imageToFile(child.attributes.tool.value) + '")';
+            child.style.backgroundImage = 'url("' + tileToFile(new Tile(child.attributes.tool.value, 'straight', 45)) + '")';
         }
     }
 }
 
 function setupWindow() {
     window.addEventListener('resize', resize, false);
+}
+
+function setMapTile(pos, tile) {
+    if (tile.name === 'beach') {
+        if (gMap[pos.y-1][pos.x].name === 'grass') gMap[pos.y][pos.x] = new Tile('grass-beach', 'straight', 45);
+        else  gMap[pos.y][pos.x] = tile;
+    } else {
+        gMap[pos.y][pos.x] = tile;
+    }
 }
 
 function setupCanvas() {
@@ -78,7 +104,7 @@ function setupCanvas() {
             gMouseDrag = { x: gMousePos.x, y: gMousePos.y };
             gCamera.drag = { x: gCamera.x, y: gCamera.y };
         } else if (e.button === 0 && gTool) {
-            gMap[gMapHover.y][gMapHover.x] = gTool.tool;
+            setMapTile(gMapHover, gTool.tile);
         }
     }, false);
     gMapCanvas.addEventListener('mouseup', function () {
@@ -90,7 +116,6 @@ function setupCanvas() {
 }
 
 function saveMap() {
-    console.log('Map saved')
     localStorage.map = JSON.stringify(gMap);
 }
 
@@ -103,7 +128,7 @@ function loadMap() {
         for (var y = 0; y < 100; y++) {
             map[y] = [];
             for (var x = 0; x < 100; x++) {
-                map[y][x] = 'grass';
+                map[y][x] = new Tile('grass', 'straight', 45);
             }
         }
     }
@@ -130,10 +155,6 @@ function renderLoop(){
   render();
 }
 
-function loadImage(tile) {
-    gTileCache[tile] = new Image();
-    gTileCache[tile].src = imageToFile(tile);
-}
 
 function translateMapToScreen(map) {
     var screen = {};
@@ -171,15 +192,10 @@ function render() {
 
     for (var y = 0; y < gMap.length; y++) {
         for (var x = 0; x < gMap[y].length; x++) {
-            if (!gTileCache[gMap[y][x]]) loadImage(gMap[y][x]);
-
             var coords = translateMapToScreen({x: x, y: y});
 
-            gCtx.fillStyle = 'rgb(' + (256 * Math.random()).toFixed() + ', ' + (256 * Math.random()).toFixed() + ', ' + (256 * Math.random()).toFixed() + ')';
-            gCtx.fillRect(gCamera.x-4, gCamera.y-4, 8, 8);
-
-            var img = gTileCache[gMap[y][x]];
-            if (gTool && gMapHover && gMapHover.x === x && gMapHover.y === y) img = gTileCache[gTool.tool];
+            var img = gTileCache[gMap[y][x].cacheKey];
+            if (gTool && gMapHover && gMapHover.x === x && gMapHover.y === y) img = gTileCache[gTool.tile.cacheKey];
 
             gCtx.drawImage(img, coords.x, coords.y);
         }
