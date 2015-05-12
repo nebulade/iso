@@ -35,6 +35,18 @@ function Tile(name, type, orientation) {
     this.img = gTileCache[this.cacheKey];
 }
 
+function Item(name, file) {
+    this.name = name;
+    this.cacheKey = file;
+
+    if (!gTileCache[this.cacheKey]) {
+        gTileCache[this.cacheKey] = new Image();
+        gTileCache[this.cacheKey].src = file;
+    }
+
+    this.img = gTileCache[this.cacheKey];
+}
+
 function setTool(source) {
     if (gTool) {
         gTool.button.classList.remove('active');
@@ -74,14 +86,14 @@ function setupWindow() {
 function getMapTile(pos) {
     if (!gMap[pos.y]) return null;
     if (!gMap[pos.y][pos.x]) return null;
-    return gMap[pos.y][pos.x];
+    return gMap[pos.y][pos.x].tile;
 }
 
 function setMapTile(pos, tile) {
     if (!tile) return;
     if (!gMap[pos.y]) return;
     if (!gMap[pos.y][pos.x]) return;
-    gMap[pos.y][pos.x] = tile;
+    gMap[pos.y][pos.x].tile = tile;
 }
 
 function calculateMapTile(pos) {
@@ -322,22 +334,6 @@ function putMapTile(pos, tile) {
     // bottom corners
     resetMapTile({ y: pos.y+1, x: pos.x-1 });
     resetMapTile({ y: pos.y+1, x: pos.x+1 });
-
-    // // Iteration trhee!
-
-    // // cross
-    // resetMapTile({ y: pos.y-1, x: pos.x });
-    // resetMapTile({ y: pos.y, x: pos.x-1 });
-    // resetMapTile({ y: pos.y, x: pos.x+1 });
-    // resetMapTile({ y: pos.y+1, x: pos.x });
-
-    // // top corners
-    // resetMapTile({ y: pos.y-1, x: pos.x-1 });
-    // resetMapTile({ y: pos.y-1, x: pos.x+1 });
-
-    // // bottom corners
-    // resetMapTile({ y: pos.y+1, x: pos.x-1 });
-    // resetMapTile({ y: pos.y+1, x: pos.x+1 });
 }
 
 function setupCanvas() {
@@ -388,7 +384,10 @@ function loadMap() {
         for (var y = 0; y < 100; y++) {
             map[y] = [];
             for (var x = 0; x < 100; x++) {
-                map[y][x] = new Tile('grass', 'straight', 45);
+                map[y][x] = {
+                    tile: new Tile('grass', 'straight', 45),
+                    item: Math.random() < 0.03 ? new Item('tree_0', 'tree_0.png') : null
+                };
             }
         }
     }
@@ -450,12 +449,26 @@ function translateScreenToMap(screen) {
 function render() {
     gCtx.clearRect(0, 0, gMapCanvas.width, gMapCanvas.height);
 
-    for (var y = 0; y < gMap.length; y++) {
-        for (var x = 0; x < gMap[y].length; x++) {
-            var coords = translateMapToScreen({x: x, y: y});
+    var y, x, coords;
 
-            var img = gTileCache[gMap[y][x].cacheKey];
+    for (y = 0; y < gMap.length; y++) {
+        for (x = 0; x < gMap[y].length; x++) {
+            coords = translateMapToScreen({x: x, y: y});
+
+            var img = gTileCache[gMap[y][x].tile.cacheKey];
             if (gTool && gMapHover && gMapHover.x === x && gMapHover.y === y) img = gTileCache[gTool.tile.cacheKey];
+
+            gCtx.drawImage(img, coords.x, coords.y);
+        }
+    }
+
+    for (y = 0; y < gMap.length; y++) {
+        for (x = 0; x < gMap[y].length; x++) {
+            if (!gMap[y][x].item) continue;
+
+            coords = translateMapToScreen({x: x, y: y});
+
+            var img = gTileCache[gMap[y][x].item.cacheKey];
 
             gCtx.drawImage(img, coords.x, coords.y);
         }
