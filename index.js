@@ -165,10 +165,80 @@ function calculateMapTile(pos) {
         ree = re.name;
     }
 
+    // top left corner
+    var tlc;
+    if (!tl) {
+        tlc = '';
+    } else if (tl.name === 'grass' || tl.name === 'beach') {
+        tlc = tl.name;
+    } else if (tl.name === 'grass-beach' && tl.type === 'curve_in') {
+        if (tl.orientation === 135) tlc = 'beach';
+        else tlc = 'grass';
+    } else if (tl.name === 'grass-beach' && tl.type === 'curve_out') {
+        if (tl.orientation === 315) tlc = 'grass';
+        else tlc = 'beach';
+    } else {
+        tlc = tl.name;
+    }
+
+    // top right corner
+    var trc;
+    if (!tr) {
+        trc = '';
+    } else if (tr.name === 'grass' || tr.name === 'beach') {
+        trc = tr.name;
+    } else if (tr.name === 'grass-beach' && tr.type === 'curve_in') {
+        if (tr.orientation === 45) trc = 'beach';
+        else trc = 'grass';
+    } else if (tr.name === 'grass-beach' && tr.type === 'curve_out') {
+        if (tr.orientation === 225) trc = 'grass';
+        else trc = 'beach';
+    } else {
+        trc = tr.name;
+    }
+
+    // bottom right corner
+    var brc;
+    if (!br) {
+        brc = '';
+    } else if (br.name === 'grass' || br.name === 'beach') {
+        brc = br.name;
+    } else if (br.name === 'grass-beach' && br.type === 'curve_in') {
+        if (br.orientation === 315) brc = 'beach';
+        else brc = 'grass';
+    } else if (br.name === 'grass-beach' && br.type === 'curve_out') {
+        if (br.orientation === 135) brc = 'grass';
+        else brc = 'beach';
+    } else {
+        brc = br.name;
+    }
+
+    // bottom left corner
+    var blc;
+    if (!bl) {
+        blc = '';
+    } else if (bl.name === 'grass' || bl.name === 'beach') {
+        blc = bl.name;
+    } else if (bl.name === 'grass-beach' && bl.type === 'curve_in') {
+        if (bl.orientation === 225) blc = 'beach';
+        else blc = 'grass';
+    } else if (bl.name === 'grass-beach' && bl.type === 'curve_out') {
+        if (bl.orientation === 45) blc = 'grass';
+        else blc = 'beach';
+    } else {
+        blc = bl.name;
+    }
+
     console.log(pos, toe, boe, lee, ree);
 
     if (toe === 'grass' && lee === 'grass' && boe === 'grass' && ree === 'grass') tile = new Tile('grass', 'straight', 45);
-    if (toe === 'beach' && lee === 'beach' && boe === 'beach' && ree === 'beach') tile = new Tile('beach', 'straight', 45);
+    if (toe === 'beach' && lee === 'beach' && boe === 'beach' && ree === 'beach') {
+        if (tlc === 'grass')  tile = new Tile('grass-beach', 'curve_out', 135);
+        else if (trc === 'grass')  tile = new Tile('grass-beach', 'curve_out', 45);
+        else if (brc === 'grass')  tile = new Tile('grass-beach', 'curve_out', 315);
+        else if (blc === 'grass')  tile = new Tile('grass-beach', 'curve_out', 225);
+        else tile = new Tile('beach', 'straight', 45);
+    }
 
     if (toe === 'beach' && lee === 'grass' && boe === 'grass' && ree === 'grass') tile = new Tile('grass-beach', 'straight', 225);
     if (toe === 'beach' && lee === 'beach' && boe === 'grass' && ree === 'beach') tile = new Tile('grass-beach', 'straight', 225);
@@ -211,21 +281,37 @@ function putMapTile(pos, tile) {
     resetMapTile({ y: pos.y+1, x: pos.x-1 });
     resetMapTile({ y: pos.y+1, x: pos.x+1 });
 
-    // Iteration two!
+    // // Iteration two!
 
-    // cross
-    resetMapTile({ y: pos.y-1, x: pos.x });
-    resetMapTile({ y: pos.y, x: pos.x-1 });
-    resetMapTile({ y: pos.y, x: pos.x+1 });
-    resetMapTile({ y: pos.y+1, x: pos.x });
+    // // cross
+    // resetMapTile({ y: pos.y-1, x: pos.x });
+    // resetMapTile({ y: pos.y, x: pos.x-1 });
+    // resetMapTile({ y: pos.y, x: pos.x+1 });
+    // resetMapTile({ y: pos.y+1, x: pos.x });
 
-    // top corners
-    resetMapTile({ y: pos.y-1, x: pos.x-1 });
-    resetMapTile({ y: pos.y-1, x: pos.x+1 });
+    // // top corners
+    // resetMapTile({ y: pos.y-1, x: pos.x-1 });
+    // resetMapTile({ y: pos.y-1, x: pos.x+1 });
 
-    // bottom corners
-    resetMapTile({ y: pos.y+1, x: pos.x-1 });
-    resetMapTile({ y: pos.y+1, x: pos.x+1 });
+    // // bottom corners
+    // resetMapTile({ y: pos.y+1, x: pos.x-1 });
+    // resetMapTile({ y: pos.y+1, x: pos.x+1 });
+
+    // // Iteration trhee!
+
+    // // cross
+    // resetMapTile({ y: pos.y-1, x: pos.x });
+    // resetMapTile({ y: pos.y, x: pos.x-1 });
+    // resetMapTile({ y: pos.y, x: pos.x+1 });
+    // resetMapTile({ y: pos.y+1, x: pos.x });
+
+    // // top corners
+    // resetMapTile({ y: pos.y-1, x: pos.x-1 });
+    // resetMapTile({ y: pos.y-1, x: pos.x+1 });
+
+    // // bottom corners
+    // resetMapTile({ y: pos.y+1, x: pos.x-1 });
+    // resetMapTile({ y: pos.y+1, x: pos.x+1 });
 }
 
 function setupCanvas() {
