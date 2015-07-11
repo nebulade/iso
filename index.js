@@ -157,6 +157,22 @@ function edgeMapToTile(map) {
     if (check('g', 4, 5, 6) && check('b', 1)) return new Tile('grass-beach', 'straight', 225);
     if (check('g', 2, 3, 4) && check('b', 7)) return new Tile('grass-beach', 'straight', 315);
 
+    if (check('g', 1, 2) && check('b', 3, 4, 5, 6, 7, 0)) return new Tile('grass-beach', 'curve_out', 45);
+    if (check('g', 2, 3) && check('b', 4, 5, 6, 7, 0, 1)) return new Tile('grass-beach', 'curve_out', 45);
+
+    if (check('g', 0, 7) && check('b', 1, 2, 3, 4, 5, 6)) return new Tile('grass-beach', 'curve_out', 135);
+    if (check('g', 0, 1) && check('b', 2, 3, 4, 5, 6, 7)) return new Tile('grass-beach', 'curve_out', 135);
+
+    if (check('g', 5, 6) && check('b', 7, 0, 1, 2, 3, 4)) return new Tile('grass-beach', 'curve_out', 225);
+    if (check('g', 6, 7) && check('b', 0, 1, 2, 3, 4, 5)) return new Tile('grass-beach', 'curve_out', 225);
+
+    if (check('g', 3, 4) && check('b', 5, 6, 7, 0, 1, 2)) return new Tile('grass-beach', 'curve_out', 315);
+    if (check('g', 4, 5) && check('b', 6, 7, 0, 1, 2, 3)) return new Tile('grass-beach', 'curve_out', 315);
+
+    // fallbacks in case all edges are from the same tile, ignore corners now
+    if (check('b', 1, 3, 5, 7)) return new Tile('beach', 'straight', 45);
+    if (check('g', 1, 3, 5, 7)) return new Tile('grass', 'straight', 45);
+
     console.error('No tile found for', map);
 }
 
@@ -169,18 +185,18 @@ function setMapTile(pos, tile) {
 
 function calculateMapTile(pos) {
     // top row
-    var tl = edgeMap(getMapTile({ y: pos.y-1, x: pos.x-1 }));
+    // var tl = edgeMap(getMapTile({ y: pos.y-1, x: pos.x-1 }));
     var to = edgeMap(getMapTile({ y: pos.y-1, x: pos.x }));
-    var tr = edgeMap(getMapTile({ y: pos.y-1, x: pos.x+1 }));
+    // var tr = edgeMap(getMapTile({ y: pos.y-1, x: pos.x+1 }));
 
     // middle row
     var le = edgeMap(getMapTile({ y: pos.y, x: pos.x-1 }));
     var ri = edgeMap(getMapTile({ y: pos.y, x: pos.x+1 }));
 
     // bottom row
-    var bl = edgeMap(getMapTile({ y: pos.y+1, x: pos.x-1 }));
+    // var bl = edgeMap(getMapTile({ y: pos.y+1, x: pos.x-1 }));
     var bo = edgeMap(getMapTile({ y: pos.y+1, x: pos.x }));
-    var br = edgeMap(getMapTile({ y: pos.y+1, x: pos.x+1 }));
+    // var br = edgeMap(getMapTile({ y: pos.y+1, x: pos.x+1 }));
 
     // calculate edges and corners
 
@@ -190,8 +206,8 @@ function calculateMapTile(pos) {
     //        5 - - 3
     //           4
 
-    var tile = edgeMapToTile([tl[4], to[5], tr[6], ri[7], br[0], bo[1], bl[2], le[3]]);
-    return tile;
+    // return = edgeMapToTile([tl[4], to[5], tr[6], ri[7], br[0], bo[1], bl[2], le[3]]);
+    return edgeMapToTile([to[6], to[5], to[4], ri[7], bo[2], bo[1], bo[0], le[3]]);
 }
 
 function resetMapTile(pos) {
