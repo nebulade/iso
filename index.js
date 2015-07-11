@@ -19,7 +19,7 @@ function tileToFile(tile) {
 }
 
 function loadTile(tile) {
-    console.log('load tile', tile.name, tile.type, tile.orientation);
+    // console.log('load tile', tile.name, tile.type, tile.orientation);
 
     gTileCache[tile.cacheKey] = new Image();
     gTileCache[tile.cacheKey].src = tileToFile(tile);
@@ -89,6 +89,77 @@ function getMapTile(pos) {
     return gMap[pos.y][pos.x].tile;
 }
 
+function edgeMap(tile) {
+    if (!tile) return null;
+
+    var map = [];
+
+    if (tile.name === 'grass') return ['g', 'g', 'g', 'g', 'g', 'g', 'g', 'g'];
+    if (tile.name === 'beach') return ['b', 'b', 'b', 'b', 'b', 'b', 'b', 'b'];
+
+    if (tile.name === 'grass-beach') {
+        map = ['b', 'b', 'b', 'b', 'b', 'b', 'b', 'b'];
+
+        if (tile.type === 'straight') {
+            if (tile.orientation === 45) map[0] = map[1] = map[2] = 'g';
+            if (tile.orientation === 135) map[6] = map[7] = map[0] = 'g';
+            if (tile.orientation === 225) map[4] = map[5] = map[6] = 'g';
+            if (tile.orientation === 315) map[2] = map[3] = map[4] = 'g';
+        } else if (tile.type === 'curve_in') {
+            if (tile.orientation === 45) map[0] = map[1] = map[2] = map[3] = map[4] = 'g';
+            if (tile.orientation === 135) map[6] = map[7] = map[0] = map[1] = map[2] = 'g';
+            if (tile.orientation === 225) map[4] = map[5] = map[6] = map[7] = map[0] = 'g';
+            if (tile.orientation === 315) map[2] = map[3] = map[4] = map[5] = map[6] = 'g';
+        } else if (tile.type === 'curve_out') {
+            if (tile.orientation === 45)  map[2] = 'g';
+            if (tile.orientation === 135) map[0] = 'g';
+            if (tile.orientation === 225) map[6] = 'g';
+            if (tile.orientation === 315) map[4] = 'g';
+        } else {
+            throw(new Error('unknown tile ' + tile.name + ' type ' + tile.type));
+        }
+
+        return map;
+    }
+
+    throw(new Error('unknown tile ' + tile.name + ' type ' + tile.type));
+}
+
+function edgeMapToTile(map) {
+    function check(type) {
+        var args = [];
+        for (var a in arguments) args.push(arguments[a]);
+        args.shift();
+        return args.every(function (a) { return map[a] === type; });
+    }
+
+    if (check('g', 0, 1, 2, 3, 4, 5, 6, 7)) return new Tile('grass', 'straight', 45);
+    if (check('b', 0, 1, 2, 3, 4, 5, 6, 7)) return new Tile('beach', 'straight', 45);
+
+    if (check('g', 2) && check('b', 0, 1, 3, 4, 5, 6, 7)) return new Tile('grass-beach', 'curve_out', 45);
+    if (check('g', 0) && check('b', 1, 2, 3, 4, 5, 6, 7)) return new Tile('grass-beach', 'curve_out', 135);
+    if (check('g', 6) && check('b', 0, 1, 2, 3, 4, 5, 7)) return new Tile('grass-beach', 'curve_out', 225);
+    if (check('g', 4) && check('b', 0, 1, 2, 3, 5, 6, 7)) return new Tile('grass-beach', 'curve_out', 315);
+
+    if (check('g', 0, 1, 2) && check('b', 3, 4, 5, 6, 7)) return new Tile('grass-beach', 'straight', 45);
+    if (check('g', 6, 7, 0) && check('b', 1, 2, 3, 4, 5)) return new Tile('grass-beach', 'straight', 135);
+    if (check('g', 4, 5, 6) && check('b', 0, 1, 2, 3, 7)) return new Tile('grass-beach', 'straight', 225);
+    if (check('g', 2, 3, 4) && check('b', 0, 1, 5, 6, 7)) return new Tile('grass-beach', 'straight', 315);
+
+    if (check('g', 0, 1, 2, 3, 4) && check('b', 5, 6, 7)) return new Tile('grass-beach', 'curve_in', 45);
+    if (check('g', 6, 7, 0, 1, 2) && check('b', 3, 4, 5)) return new Tile('grass-beach', 'curve_in', 135);
+    if (check('g', 4, 5, 6, 7, 0) && check('b', 1, 2, 3)) return new Tile('grass-beach', 'curve_in', 225);
+    if (check('g', 2, 3, 4, 5, 6) && check('b', 7, 0, 1)) return new Tile('grass-beach', 'curve_in', 315);
+
+    // add those to allow placing tile without similar neighbours
+    if (check('g', 0, 1, 2) && check('b', 5)) return new Tile('grass-beach', 'straight', 45);
+    if (check('g', 6, 7, 0) && check('b', 3)) return new Tile('grass-beach', 'straight', 135);
+    if (check('g', 4, 5, 6) && check('b', 1)) return new Tile('grass-beach', 'straight', 225);
+    if (check('g', 2, 3, 4) && check('b', 7)) return new Tile('grass-beach', 'straight', 315);
+
+    console.error('No tile found for', map);
+}
+
 function setMapTile(pos, tile) {
     if (!tile) return;
     if (!gMap[pos.y]) return;
@@ -97,202 +168,29 @@ function setMapTile(pos, tile) {
 }
 
 function calculateMapTile(pos) {
-    var tile = getMapTile(pos);
-
     // top row
-    var tl = getMapTile({ y: pos.y-1, x: pos.x-1 });
-    var to = getMapTile({ y: pos.y-1, x: pos.x });
-    var tr = getMapTile({ y: pos.y-1, x: pos.x+1 });
+    var tl = edgeMap(getMapTile({ y: pos.y-1, x: pos.x-1 }));
+    var to = edgeMap(getMapTile({ y: pos.y-1, x: pos.x }));
+    var tr = edgeMap(getMapTile({ y: pos.y-1, x: pos.x+1 }));
 
     // middle row
-    var le = getMapTile({ y: pos.y, x: pos.x-1 });
-    var re = getMapTile({ y: pos.y, x: pos.x+1 });
+    var le = edgeMap(getMapTile({ y: pos.y, x: pos.x-1 }));
+    var ri = edgeMap(getMapTile({ y: pos.y, x: pos.x+1 }));
 
     // bottom row
-    var bl = getMapTile({ y: pos.y+1, x: pos.x-1 });
-    var bo = getMapTile({ y: pos.y+1, x: pos.x });
-    var br = getMapTile({ y: pos.y+1, x: pos.x+1 });
+    var bl = edgeMap(getMapTile({ y: pos.y+1, x: pos.x-1 }));
+    var bo = edgeMap(getMapTile({ y: pos.y+1, x: pos.x }));
+    var br = edgeMap(getMapTile({ y: pos.y+1, x: pos.x+1 }));
 
-    // top edge
-    var toe;
-    if (!to) {
-        toe = '';
-    } else if (to.name === 'grass' || to.name === 'beach') {
-        toe = to.name;
-    } else if (to.name === 'grass-beach' && to.type === 'straight') {
-        if (to.orientation === 225) toe = 'grass';
-        else toe = 'beach';
-    } else if (to.name === 'grass-beach' && to.type === 'curve_in') {
-        if (to.orientation === 45 || to.orientation === 135) toe = 'beach';
-        else toe = 'grass';
-    } else if (to.name === 'grass-beach' && to.type === 'curve_out') {
-        toe = 'beach';
-    } else {
-        toe = to.name;
-    }
+    // calculate edges and corners
 
-    // bottom edge
-    var boe;
-    if (!bo) {
-        boe = '';
-    } else if (bo.name === 'grass' || bo.name === 'beach') {
-        boe = bo.name;
-    } else if (bo.name === 'grass-beach' && bo.type === 'straight') {
-        if (bo.orientation === 45) boe = 'grass';
-        else boe = 'beach';
-    } else if (bo.name === 'grass-beach' && bo.type === 'curve_in') {
-        if (bo.orientation === 45 || bo.orientation === 135) boe = 'grass';
-        else boe = 'beach';
-    } else if (bo.name === 'grass-beach' && bo.type === 'curve_out') {
-        boe = 'beach';
-    } else {
-        boe = bo.name;
-    }
+    //           0
+    //        7 - - 1
+    //      6 -     - 2
+    //        5 - - 3
+    //           4
 
-    // left edge
-    var lee;
-    if (!le) {
-        lee = '';
-    } else if (le.name === 'grass' || le.name === 'beach') {
-        lee = le.name;
-    } else if (le.name === 'grass-beach' && le.type === 'straight') {
-        if (le.orientation === 315) lee = 'grass';
-        else lee = 'beach';
-    } else if (le.name === 'grass-beach' && le.type === 'curve_in') {
-        if (le.orientation === 45 || le.orientation === 315) lee = 'grass';
-        else lee = 'beach';
-    } else if (le.name === 'grass-beach' && le.type === 'curve_out') {
-        lee = 'beach';
-    } else {
-        lee = le.name;
-    }
-
-    // right edge
-    var ree;
-    if (!re) {
-        ree = '';
-    } else if (re.name === 'grass' || re.name === 'beach') {
-        ree = re.name;
-    } else if (re.name === 'grass-beach' && re.type === 'straight') {
-        if (re.orientation === 135) ree = 'grass';
-        else ree = 'beach';
-    } else if (re.name === 'grass-beach' && re.type === 'curve_in') {
-        if (re.orientation === 45 || re.orientation === 315) ree = 'beach';
-        else ree = 'grass';
-    } else if (re.name === 'grass-beach' && re.type === 'curve_out') {
-        ree = 'beach';
-    } else {
-        ree = re.name;
-    }
-
-    // top left corner
-    var tlc;
-    if (!tl) {
-        tlc = '';
-    } else if (tl.name === 'grass' || tl.name === 'beach') {
-        tlc = tl.name;
-    } else if (br.name === 'grass-beach' && br.type === 'straight') {
-        if (br.orientation === 135 || br.orientation === 45) brc = 'grass';
-        else brc = 'beach';
-    } else if (tl.name === 'grass-beach' && tl.type === 'curve_in') {
-        if (tl.orientation === 135) tlc = 'beach';
-        else tlc = 'grass';
-    } else if (tl.name === 'grass-beach' && tl.type === 'curve_out') {
-        if (tl.orientation === 315) tlc = 'grass';
-        else tlc = 'beach';
-    } else {
-        tlc = tl.name;
-    }
-
-    // top right corner
-    var trc;
-    if (!tr) {
-        trc = '';
-    } else if (tr.name === 'grass' || tr.name === 'beach') {
-        trc = tr.name;
-    } else if (br.name === 'grass-beach' && br.type === 'straight') {
-        if (br.orientation === 135 || br.orientation === 225) brc = 'grass';
-        else brc = 'beach';
-    } else if (tr.name === 'grass-beach' && tr.type === 'curve_in') {
-        if (tr.orientation === 45) trc = 'beach';
-        else trc = 'grass';
-    } else if (tr.name === 'grass-beach' && tr.type === 'curve_out') {
-        if (tr.orientation === 225) trc = 'grass';
-        else trc = 'beach';
-    } else {
-        trc = tr.name;
-    }
-
-    // bottom right corner
-    var brc;
-    if (!br) {
-        brc = '';
-    } else if (br.name === 'grass' || br.name === 'beach') {
-        brc = br.name;
-    } else if (br.name === 'grass-beach' && br.type === 'straight') {
-        if (br.orientation === 135 || br.orientation === 45) brc = 'grass';
-        else brc = 'beach';
-    } else if (br.name === 'grass-beach' && br.type === 'curve_in') {
-        if (br.orientation === 315) brc = 'beach';
-        else brc = 'grass';
-    } else if (br.name === 'grass-beach' && br.type === 'curve_out') {
-        if (br.orientation === 135) brc = 'grass';
-        else brc = 'beach';
-    } else {
-        brc = br.name;
-    }
-
-    // bottom left corner
-    var blc;
-    if (!bl) {
-        blc = '';
-    } else if (bl.name === 'grass' || bl.name === 'beach') {
-        blc = bl.name;
-    } else if (br.name === 'grass-beach' && br.type === 'straight') {
-        if (br.orientation === 315 || br.orientation === 45) brc = 'grass';
-        else brc = 'beach';
-    } else if (bl.name === 'grass-beach' && bl.type === 'curve_in') {
-        if (bl.orientation === 225) blc = 'beach';
-        else blc = 'grass';
-    } else if (bl.name === 'grass-beach' && bl.type === 'curve_out') {
-        if (bl.orientation === 45) blc = 'grass';
-        else blc = 'beach';
-    } else {
-        blc = bl.name;
-    }
-
-    console.log(pos, toe, boe, lee, ree);
-
-    if (toe === 'grass' && lee === 'grass' && boe === 'grass' && ree === 'grass') {
-        if (tlc === 'beach')  tile = new Tile('grass-beach', 'curve_out', 135);
-        else if (trc === 'beach')  tile = new Tile('grass-beach', 'curve_out', 45);
-        else if (brc === 'beach')  tile = new Tile('grass-beach', 'curve_out', 315);
-        else if (blc === 'beach')  tile = new Tile('grass-beach', 'curve_out', 225);
-        else tile = new Tile('grass', 'straight', 45);
-    }
-    if (toe === 'beach' && lee === 'beach' && boe === 'beach' && ree === 'beach') {
-        if (tlc === 'grass')  tile = new Tile('grass-beach', 'curve_out', 135);
-        else if (trc === 'grass')  tile = new Tile('grass-beach', 'curve_out', 45);
-        else if (brc === 'grass')  tile = new Tile('grass-beach', 'curve_out', 315);
-        else if (blc === 'grass')  tile = new Tile('grass-beach', 'curve_out', 225);
-        else tile = new Tile('beach', 'straight', 45);
-    }
-
-    if (toe === 'beach' && lee === 'grass' && boe === 'grass' && ree === 'grass') tile = new Tile('grass-beach', 'straight', 225);
-    if (toe === 'beach' && lee === 'beach' && boe === 'grass' && ree === 'beach') tile = new Tile('grass-beach', 'straight', 225);
-    if (toe === 'grass' && lee === 'beach' && boe === 'grass' && ree === 'grass') tile = new Tile('grass-beach', 'straight', 315);
-    if (toe === 'grass' && lee === 'grass' && boe === 'beach' && ree === 'grass') tile = new Tile('grass-beach', 'straight', 45);
-    if (toe === 'grass' && lee === 'beach' && boe === 'beach' && ree === 'beach') tile = new Tile('grass-beach', 'straight', 45);
-    if (toe === 'grass' && lee === 'grass' && boe === 'grass' && ree === 'beach') tile = new Tile('grass-beach', 'straight', 135);
-    if (toe === 'beach' && lee === 'grass' && boe === 'beach' && ree === 'beach') tile = new Tile('grass-beach', 'straight', 135);
-    if (toe === 'beach' && lee === 'beach' && boe === 'beach' && ree === 'grass') tile = new Tile('grass-beach', 'straight', 315);
-
-    if (toe === 'grass' && lee === 'grass' && boe === 'beach' && ree === 'beach') tile = new Tile('grass-beach', 'curve_in', 135);
-    if (toe === 'grass' && lee === 'beach' && boe === 'grass' && ree === 'beach') tile = new Tile('grass-beach', 'curve_in', 45);
-    if (toe === 'grass' && lee === 'beach' && boe === 'beach' && ree === 'grass') tile = new Tile('grass-beach', 'curve_in', 45);
-    if (toe === 'beach' && lee === 'beach' && boe === 'grass' && ree === 'grass') tile = new Tile('grass-beach', 'curve_in', 315);
-    if (toe === 'beach' && lee === 'grass' && boe === 'grass' && ree === 'beach') tile = new Tile('grass-beach', 'curve_in', 225);
-
+    var tile = edgeMapToTile([tl[4], to[5], tr[6], ri[7], br[0], bo[1], bl[2], le[3]]);
     return tile;
 }
 
@@ -303,37 +201,22 @@ function resetMapTile(pos) {
 function putMapTile(pos, tile) {
     setMapTile(pos, tile);
 
-    // Iteration one!
 
-    // cross
-    resetMapTile({ y: pos.y-1, x: pos.x });
-    resetMapTile({ y: pos.y, x: pos.x-1 });
-    resetMapTile({ y: pos.y, x: pos.x+1 });
-    resetMapTile({ y: pos.y+1, x: pos.x });
+    for (var i = 0; i < 10; ++i) {
+        // cross
+        resetMapTile({ y: pos.y-1, x: pos.x });
+        resetMapTile({ y: pos.y, x: pos.x-1 });
+        resetMapTile({ y: pos.y, x: pos.x+1 });
+        resetMapTile({ y: pos.y+1, x: pos.x });
 
-    // top corners
-    resetMapTile({ y: pos.y-1, x: pos.x-1 });
-    resetMapTile({ y: pos.y-1, x: pos.x+1 });
+        // top corners
+        resetMapTile({ y: pos.y-1, x: pos.x-1 });
+        resetMapTile({ y: pos.y-1, x: pos.x+1 });
 
-    // bottom corners
-    resetMapTile({ y: pos.y+1, x: pos.x-1 });
-    resetMapTile({ y: pos.y+1, x: pos.x+1 });
-
-    // Iteration two!
-
-    // cross
-    resetMapTile({ y: pos.y-1, x: pos.x });
-    resetMapTile({ y: pos.y, x: pos.x-1 });
-    resetMapTile({ y: pos.y, x: pos.x+1 });
-    resetMapTile({ y: pos.y+1, x: pos.x });
-
-    // top corners
-    resetMapTile({ y: pos.y-1, x: pos.x-1 });
-    resetMapTile({ y: pos.y-1, x: pos.x+1 });
-
-    // bottom corners
-    resetMapTile({ y: pos.y+1, x: pos.x-1 });
-    resetMapTile({ y: pos.y+1, x: pos.x+1 });
+        // bottom corners
+        resetMapTile({ y: pos.y+1, x: pos.x-1 });
+        resetMapTile({ y: pos.y+1, x: pos.x+1 });
+    }
 }
 
 function setupCanvas() {
@@ -410,7 +293,8 @@ function init() {
 }
 
 function renderLoop(){
-  window.requestAnimationFrame(renderLoop);
+  // window.requestAnimationFrame(renderLoop);
+  window.setTimeout(renderLoop, 500);
   render();
 }
 
